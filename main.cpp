@@ -87,16 +87,26 @@ void Interpret(const vector<Command>& commands) {
 	angle = angle + c.arg;
       break;
     case PEN_UP:
-      cout << "pen up" << endl;
+      penUp = true;
       break;
     case PEN_DOWN:
-      cout << "pen down" << endl;
+      penUp = false;
       break;
     case COLOR:
-      cout << "color " << c.arg() << endl;
+	
+      if(c.arg == 0)
+		blColor3f(0.0, 0.0, 0.0);
+	  if(c.arg == 1)
+		blColor3f(1.0, 0.0, 0.0);
+	  if(c.arg == 2)
+	    blColor3f(0.0, 1.0, 0.0);
+	  if(c.arg == 3)
+		blColor3f(0.0, 0.0, 1.0);
+		
       break;
     case ORIGIN:
-      cout << "origin" << endl;
+      pos[0] = 0.0;
+	  pos[1] = 0.0;
       break;
     }
   }
