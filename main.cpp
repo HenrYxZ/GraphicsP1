@@ -9,10 +9,23 @@
 
 using namespace std;
 
-double* pos;
+// the main point structure
+struct Point {
+  double pos[2];
+  int color;
+};
+
+// the current angle in polar coordinates
 double angle;
-int** color;
+
+// true if the pen is up (off) false if the pen is down (on)
 bool penUp;
+
+// the current point that the pen (up or down) is located
+Point current_point;
+
+// all of the points which we are keeping track of
+vector<vector<Point> > points;
 
 void Init() {
   glClearColor(1.0, 1.0, 1.0, 1.0);
@@ -31,17 +44,36 @@ void Init() {
 void Display() {
   glClear(GL_COLOR_BUFFER_BIT);
   // TODO: Change to draw according to turtle commands given
-  // Draw a red triangle.
-  glBegin(GL_LINES);
-  glColor3f(1.0, 0.0, 0.0);
-  glVertex2f(-0.5, -0.5);
-  glVertex2f(0.5, -0.5);
-  glVertex2f(0.5, -0.5);
-  glVertex2f(0.0, 0.5);
-  glVertex2f(0.0, 0.5);
-  glVertex2f(-0.5, -0.5);
-  glEnd();
+  // Draw a red triangle.main.cpp:16:1:
 
+  for (int i = 0; i < points.size(); ++i) {
+    // convert from color enum to RGB value
+    if (points[i].size() > 0) {
+      int color = points[i][0].color;
+      switch (color) {
+        case 0:
+          glColor3f(0.0, 0.0, 0.0);
+          break;
+        case 1:
+          glColor3f(1.0, 0.0, 0.0);
+          break;
+        case 2:
+          glColor3f(0.0, 1.0, 0.0);
+          break;
+        case 3:
+          glColor3f(0.0, 0.0, 1.0);
+          break;
+      }
+    }
+
+    glBegin(GL_LINE_STRIP);
+
+    for (int j = 0; j < points[i].size(); ++j) {
+      // put down an actual point
+      glVertex2f(points[i][j].pos[0], points[i][j].pos[1]);
+    }
+    glEnd();
+  }
   glFlush();
 }
 
@@ -52,62 +84,88 @@ void Interpret(const vector<Command>& commands) {
     const Command& c = commands[i];
     switch (c.name()) {
     case FORWARD:
-      // changed
-	// Change the possition of the turtle  
-	
-	// -------------- FORWARD --------------------------------------------------------------
-	double posx,posy;
-	
-	posx = pos[0] + c.arg * cos(angle*PI/180);
-	posy = pos[1] + c.arg * sin(angle*PI/180);
-	
-	if(!penUp)
-	{
-		glColor3f(0.0, 0.0, 0.0);
-		glLineWidth(3);
-		glBegin(GL_LINES_STRIP);
-		glVertex2f(pos[0],pos[1]);
-		glVertex2f(posx,posy);
-		glEnd();
-		
-		gluErrorString(glGetError());
-	}
-	
-	  //end
+      // -------------- FORWARD -----------------------------------------------
+
+      // figure out the position of the next point after this forward
+      current_point.pos[0] = current_point.pos[0] +
+        c.arg() * cos((angle * PI) / 180);
+      current_point.pos[1] = current_point.pos[1] +
+        c.arg() * sin((angle * PI) / 180);
+
+      // only if the pen is down, we display this point
+      if (!penUp) {
+        points.back().push_back(current_point);
+      }
+
+       // end
       break;
     case RIGHT:
-	
-    // ------------ RIGHT  -------------------------------------------------------------------
-	angle = angle - c.arg;
-    
-	  break;
+
+    // ------------ RIGHT  ----------------------------------------------------
+      angle = angle - c.arg();
+
+      if (angle < 0) {
+        angle += 360;
+      }
+      break;
     case LEFT:
-    // ----------- LEFT     -------------------------------------------------------------------
-	
-	angle = angle + c.arg;
+    // ----------- LEFT     ---------------------------------------------------
+
+  angle = angle + c.arg();
+
+  if (angle > 360) {
+    angle -= 360;
+  }
+
       break;
-    case PEN_UP:
+    case PEN_UP: {
       penUp = true;
+      vector<Point> line1;
+      points.push_back(line1);
       break;
-    case PEN_DOWN:
+    }
+    case PEN_DOWN: {
       penUp = false;
+
+      // place a point since the pen is down for a new line
+      points.back().push_back(current_point);
       break;
-    case COLOR:
-	
-      if(c.arg == 0)
-		blColor3f(0.0, 0.0, 0.0);
-	  if(c.arg == 1)
-		blColor3f(1.0, 0.0, 0.0);
-	  if(c.arg == 2)
-	    blColor3f(0.0, 1.0, 0.0);
-	  if(c.arg == 3)
-		blColor3f(0.0, 0.0, 1.0);
-		
-      break;
-    case ORIGIN:
-      pos[0] = 0.0;
-	  pos[1] = 0.0;
-      break;
+    }
+    case COLOR: {
+      if (!penUp) {
+        points.back().push_back(current_point);
+      }
+
+      vector<Point> line2;
+      points.push_back(line2);
+      if (c.arg() == 0)
+         current_point.color = 0;
+      if (c.arg() == 1)
+         current_point.color = 1;
+      if (c.arg() == 2)
+         current_point.color = 2;
+      if (c.arg() == 3)
+         current_point.color = 3;
+
+      if (!penUp) {
+        points.back().push_back(current_point);
+      }
+    }
+    break;
+    case ORIGIN: {
+      current_point.pos[0] = 0.0;
+      current_point.pos[1] = 0.0;
+      angle = 90;
+
+      // cut continuous line
+      vector<Point> line2;
+      points.push_back(line2);
+
+      if (!penUp) {
+        points.back().push_back(current_point);
+      }
+    }
+    break;
     }
   }
 }
@@ -121,18 +179,22 @@ void Keyboard(unsigned char key, int x, int y) {
 }
 
 int main(int argc, char** argv) {
+  // added by Hernaldo 1/21/13
+  current_point.color = 0;
+  current_point.pos[0] = 0;
+  current_point.pos[1] = 0;
+  // first position is X, second one is Y, using cartesian coords.
 
-	//added by Hernaldo 1/21/13
-	pos = new double[2];
-	// first position is X, second one is Y, using cartesian coords.
-	pos[0] = 0.0;
-	pos[1] = 0.0;
-	
-	angle = PI/2;
-	
-	penUp = false;
-	// end
-	
+  angle = 90;
+
+  penUp = false;
+
+  vector<Point> line;
+  points.push_back(line);
+
+  points.back().push_back(current_point);
+  // end
+
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
   glutInitWindowSize(500, 500);
