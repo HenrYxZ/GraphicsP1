@@ -111,13 +111,13 @@ void Interpret(const vector<Command>& commands) {
     case LEFT:
     // ----------- LEFT     ---------------------------------------------------
 
-  angle = angle + c.arg();
+	  angle = angle + c.arg();
 
-  if (angle > 360) {
-    angle -= 360;
-  }
+	  if (angle > 360) {
+		angle -= 360;
+	  }
 
-      break;
+		  break;
     case PEN_UP: {
       penUp = true;
       vector<Point> line1;
@@ -174,7 +174,7 @@ void Keyboard(unsigned char key, int x, int y) {
   switch (key) {
     case 'q':
       exit(EXIT_SUCCESS);
-      break;
+    break;
   }
 }
 
